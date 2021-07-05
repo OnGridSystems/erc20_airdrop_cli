@@ -1,8 +1,5 @@
-from enum import Enum
-
 import peewee as pw
 
-from enumfield import EnumField
 
 DBFILE = 'db.sqlite'
 db = pw.SqliteDatabase(DBFILE)
@@ -14,8 +11,14 @@ class BaseModel(pw.Model):
 
 
 class Config(BaseModel):
-    name = pw.CharField(max_length=255)
-    value = pw.CharField(max_length=255)
+    address = pw.CharField(max_length=42)
+    private_key = pw.CharField(max_length=64)
+    gas_price = pw.IntegerField()
+    web3_node = pw.CharField(max_length=255)
+    
+    current_nonce = pw.IntegerField(default=0)
+    eth_balance = pw.CharField(default=0)
+    token_balance = pw.CharField(default=0)
 
 
 class Recipient(BaseModel):
@@ -25,14 +28,18 @@ class Recipient(BaseModel):
 
 class Tx(BaseModel):
 
-    choises = {
-        'WAITING': 1,
-        'READY_TO_SEND': 2,
-        'UPLOADING': 3,
-        'OCR': 4,
-        'DONE': 5,
-    }
+    choices = (
+        ('NEW', 'NEW'),
+        ('SIGNED', 'SIGNED'),
+        ('SENT', 'SENT'),
+        ('MINED', 'MINED'),
+    )
 
-    nonce = pw.IntegerField()
+    raw_tx = pw.TextField(default="")
+    signed_tx = pw.BlobField(default="")
+    tx_hash = pw.BlobField(default="")
+    tx_receipt = pw.TextField(default="")
+
+    nonce = pw.IntegerField(null=True)
     recipient = pw.ForeignKeyField(Recipient, backref='txes')
-    status = EnumField(choices=choises)
+    status = pw.CharField(choices=choices)
