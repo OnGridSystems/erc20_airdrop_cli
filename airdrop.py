@@ -11,6 +11,8 @@ from models import (
     Tx,
 )
 
+from pretty_table import print_pretty_table
+
 
 def initialize():
     db.connect()
@@ -84,12 +86,16 @@ def show():
     print(f"Recipients:")
     token_sum = Recipient.select(fn.SUM(Recipient.amount))[0].amount
     recipients = Recipient.select()
-    print("Address                                    Nonce Status Tokens")
-    for rec in recipients:
-        print(f"{rec.address} {rec.txes[0].nonce}   {rec.txes[0].status} {rec.amount}")
     
-    print("---------------------------------------------------------------")
-    print(f"Total {len(recipients)} recipients, {token_sum} ERC-20 Tokens.\n")
+    header = [['Address', 'Tokens', 'Nonce', 'Status']]
+    values = [
+        [rec.address, str(rec.amount), str(rec.txes[0].nonce), rec.txes[0].status] for rec in recipients
+    ]
+    data_to_print = header + values
+    print_pretty_table(data_to_print)
+
+    print(f"\nTotal {len(recipients)} recipients, {token_sum} ERC-20 Tokens.\n")
+    
 
 
 def add_recepient(recipient_address, amount):
@@ -128,7 +134,6 @@ def sign():
     nonce = config.current_nonce
     
     recipients = Recipient.select(Recipient, Tx).join(Tx).where(Tx.status == 'NEW')
-    import pdb; pdb.set_trace()
     for recipient in recipients:
         tx = recipient.txes[0]
         raw_tx = token.functions.transfer(
