@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import sys
 import json
 from web3 import Web3
