@@ -23,7 +23,8 @@ def initialize():
     Config.create(address="0x0000000000000000000000000000000000000000", 
                   private_key="0000000000000000000000000000000000000000000000000000000000000000",
                   gas_price=10000000000,
-                  web3_node="https://data-seed-prebsc-2-s1.binance.org:8545/")
+                  web3_node="https://data-seed-prebsc-2-s1.binance.org:8545/",
+                  token="0x0000000000000000000000000000000000000000")
     print('Db was created!')
 
 
@@ -37,6 +38,17 @@ def import_key():
     config.private_key = private_key
     config.save()
     print(f'Sender address: {address}')
+
+
+def set_token(token_address):
+    if not Web3.isChecksumAddress(token_address):
+        print('Wrong token address. Try again.')
+        return
+    
+    config = Config.get(1)
+    config.token = token_address
+    config.save()
+    print(f"Now token for airdrop is {token_address}")
 
 
 def set_node_address(node_address):
@@ -64,7 +76,7 @@ def update_data():
     config.eth_balance = w3.eth.get_balance(config.address)
     with open("tokens_abi/ERC20.abi", "r") as file:
         erc20_abi = json.load(file)
-    token_contract = w3.eth.contract(address=Web3.toChecksumAddress("0x688ce8a97d5f1193261DB2271f542193D1dFd866"), abi=erc20_abi)
+    token_contract = w3.eth.contract(address=Web3.toChecksumAddress(config.token), abi=erc20_abi)
     config.token_balance = token_contract.functions.balanceOf(config.address).call()
     
     # nonce
@@ -90,6 +102,7 @@ def show():
     config = Config.get(1)
     print(f"Sender address: {config.address}")
     print(f"Sender ETH balance: {config.eth_balance} Wei")
+    print(f"Token address: {config.token}")
     print(f"Token balance:  {config.token_balance} Wei")
     print(f"Sender nonce: {config.current_nonce}")
     print(f"Web3 endpoint: {config.web3_node}")
@@ -99,9 +112,13 @@ def show():
     token_sum = Recipient.select(fn.SUM(Recipient.amount))[0].amount
     recipients = Recipient.select()
     
-    header = [['Address', 'Tokens', 'Nonce', 'Status']]
+    header = [['Address', 'Tokens', 'Nonce', 'Status', 'Tx Hash']]
     values = [
-        [rec.address, str(rec.amount), str(rec.txes[0].nonce), rec.txes[0].status] for rec in recipients
+        [rec.address, 
+         str(rec.amount), 
+         str(rec.txes[0].nonce), 
+         rec.txes[0].status,
+         rec.txes[0].tx_hash.hex()] for rec in recipients
     ]
     data_to_print = header + values
     print_pretty_table(data_to_print)
@@ -143,11 +160,10 @@ def set_gas_price(new_gas_price):
 
 def sign():
     config = Config.get(1)
-    token_adr = "0x688ce8a97d5f1193261DB2271f542193D1dFd866"
     w3 = Web3(Web3.HTTPProvider(config.web3_node, request_kwargs={"timeout": 20}))
     with open("tokens_abi/ERC20.abi", "r") as file:
         erc20_abi = json.load(file)
-    token = w3.eth.contract(address=Web3.toChecksumAddress(token_adr), abi=erc20_abi)
+    token = w3.eth.contract(address=Web3.toChecksumAddress(config.token), abi=erc20_abi)
     nonce = config.current_nonce
     
     recipients = Recipient.select(Recipient, Tx).join(Tx).where(Tx.status == 'NEW')
@@ -182,6 +198,10 @@ def send():
         tx_hash = w3.eth.send_raw_transaction(sending_tx.signed_tx)
     except ValueError:
         print("Needs to update nonce. Use command 'update'.")
+        return
+    except AttributeError:
+        print("Nothing to send.")
+        return
     sending_tx.tx_hash = tx_hash
     sending_tx.status = 'SENT'
     sending_tx.save()
@@ -212,6 +232,7 @@ def help():
     print("""
     init                    Starts project, calls at once.
     import                  Import admin private key, returns user address.
+    token <address>         Set token address for airdrop.
     web3 <web_address>      Specify web3 node address.
     update                  Retrievs latest balances and user nonce. Also updates nonce for 'SIGNED' tx, if necceessary.
     show                    Shows current status.
@@ -226,6 +247,7 @@ def help():
 command_dict = {
     "init": initialize,
     'import': import_key,
+    'token': set_token,
     "web3": set_node_address,
     "update": update_data,
     "show": show,
