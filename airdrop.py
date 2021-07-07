@@ -82,10 +82,8 @@ def update_data():
             tx.raw_tx = updated_raw_tx
             tx.signed_tx = w3.eth.account.sign_transaction(updated_raw_tx, config.private_key).rawTransaction            
             tx.save()
-            print(tx.raw_tx)
             nonce += 1
     print('Balance and nonce have been updated.')
-    # TODO? update gasprice for signed txs?
 
 
 def show():
@@ -209,11 +207,6 @@ def get_receipt():
     print(f"Tx with nonce {tx.nonce} was successfully mined!")
 
 
-# def delete_recepient(recipient_address):
-#     recipient = Recipient.delete().where(Recipient.address == recipient_address)
-#     recipient.execute()
-#     print(f"Recipient {recipient_address} was deleted.")
-
 
 def help():
     print("""
@@ -241,7 +234,6 @@ command_dict = {
     "sign": sign,
     "send": send,
     "receipt": get_receipt,
-    # "delete": delete_recepient,
     "help": help,
 }
 
