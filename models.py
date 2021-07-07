@@ -15,6 +15,7 @@ class Config(BaseModel):
     private_key = pw.CharField(max_length=64)
     gas_price = pw.IntegerField()
     web3_node = pw.CharField(max_length=255)
+    token = pw.CharField(max_length=42)
     
     current_nonce = pw.IntegerField(default=0)
     eth_balance = pw.CharField(default=0)
