@@ -221,7 +221,7 @@ def get_receipt():
     w3 = Web3(Web3.HTTPProvider(config.web3_node, request_kwargs={"timeout": 20}))
     
     tx = Tx.select().where(Tx.status == "SENT").order_by(Tx.id).first()
-    tx.tx_hash = w3.eth.wait_for_transaction_receipt(tx.tx_hash)
+    tx.tx_receipt= w3.eth.wait_for_transaction_receipt(tx.tx_hash)
     tx.status = "MINED"
     tx.save()
     print(f"Tx with nonce {tx.nonce} was successfully mined!")
