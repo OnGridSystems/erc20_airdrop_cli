@@ -5,6 +5,7 @@ import json
 from web3 import Web3
 from ast import literal_eval
 from peewee import fn
+import requests
 
 from models import (
     db,
@@ -39,6 +40,17 @@ def import_key():
 
 
 def set_node_address(node_address):
+    try:
+        assert requests.get(node_address).status_code == 200
+    except requests.exceptions.MissingSchema:
+        print(f"Wrong node URL. Perhaps you meant http://{node_address}?")
+        return
+    except requests.exceptions.ConnectionError:
+        print('Failed to establish a new connection. Try again or change URL.')
+        return
+    except AssertionError:
+        print('Wrong node URL. Try again.')
+        return
     config = Config.get(1)
     config.web3_node = node_address
     config.save()
@@ -120,6 +132,11 @@ def add_recepient(recipient_address, amount):
     
 
 def set_gas_price(new_gas_price):
+    try:
+        int(new_gas_price)
+    except ValueError:
+        print("Wrong gas value. Try again")
+        return
     config = Config.get(1)
     config.gas_price = new_gas_price
     config.save()
@@ -230,18 +247,19 @@ command_dict = {
 
 
 if len(sys.argv) < 2:
-    print("Enter one of commands: init, import, web3, update, show, add...)")
+    print("Command reqired. Input 'help' for additional info.")
 else:
     # parse command
     try:
         command = sys.argv[1]
         args = sys.argv[2:]
     except IndexError:
-        print('Invalid command. Try again.')
+        print("Invalid command. Try again or input 'help' for help.")
 
     # execute command
     try:
         command_dict[command](*args)
     except TypeError:
-        print(f'Please specify all argument(s) for command "{command}"')
-
+        print(f'Please specify all neccessary argument(s) for command "{command}"')
+    except KeyError:
+        print("Invalid command. Try again or input 'help' for help.")
