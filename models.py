@@ -24,7 +24,7 @@ class Config(BaseModel):
 
 class Recipient(BaseModel):
     address = pw.CharField(max_length=42)
-    amount = pw.DecimalField()
+    amount = pw.DecimalField(max_digits=36, decimal_places=18)
 
 
 class Tx(BaseModel):
